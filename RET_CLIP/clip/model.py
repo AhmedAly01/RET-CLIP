@@ -226,7 +226,7 @@ class ResidualAttentionBlock(nn.Module):
     def __init__(self, d_model: int, n_head: int, attn_mask: torch.Tensor = None, use_flash_attention: bool = False):
         super().__init__()
 
-        self.attn = nn.MultiheadAttention(d_model, n_head) if not use_flash_attention else FlashMHA(d_model, n_head)
+        self.attn = nn.MultiheadAttention(d_model, n_head, batch_first=False) if not use_flash_attention else FlashMHA(d_model, n_head)
         self.ln_1 = LayerNorm(d_model)
         self.mlp = .Sequential(OrderedDict([
             ("c_fc", nn.Linear(d_model, d_model * 4)),
@@ -236,20 +236,27 @@ class ResidualAttentionBlock(nn.Module):
         self.ln_2 = LayerNorm(d_model)
         self.attn_mask = attn_mask
         self.use_flash_attention = use_flash_attention
+        self.saved_attn_weights = None
 
     def attention(self, x: torch.Tensor):
         self.attn_mask = self.attn_mask.to(dtype=x.dtype, device=x.device) if self.attn_mask is not None else None
+
         if self.use_flash_attention:
-            # Batch first is needed for FlashAttention. See https://github.com/HazyResearch/flash-attention/issues/84 for more information.
             return self.attn(x.transpose(1, 0))[0].transpose(1, 0)
         else:
-            return self.attn(x, x, x, need_weights=True, attn_mask=self.attn_mask, average_attn_weights=False)[0]
+            output, attn_weights = self.attn(
+                x, x, x,
+                need_weights=True,
+                attn_mask=self.attn_mask,
+                average_attn_weights=False
+            )
+            # Save the attention maps
+            self.saved_attn_weights = attn_weights.detach()
+            return output
 
     def forward(self, x: torch.Tensor):
         x = x + self.attention(self.ln_1(x))
         x = x + self.mlp(self.ln_2(x))
-        if hasattr(self.attn, "save_attn_weights"):
-            self.attn.save_attn_weights(attn_weights)
         return x
 
 
