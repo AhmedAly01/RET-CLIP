@@ -243,7 +243,7 @@ class ResidualAttentionBlock(nn.Module):
             # Batch first is needed for FlashAttention. See https://github.com/HazyResearch/flash-attention/issues/84 for more information.
             return self.attn(x.transpose(1, 0))[0].transpose(1, 0)
         else:
-            return self.attn(x, x, x, need_weights=False, attn_mask=self.attn_mask)[0]
+            return self.attn(x, x, x, need_weights=True, attn_mask=self.attn_mask, average_attn_weights=False)[0]
 
     def forward(self, x: torch.Tensor):
         x = x + self.attention(self.ln_1(x))
