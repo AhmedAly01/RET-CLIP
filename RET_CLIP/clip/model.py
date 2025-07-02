@@ -226,6 +226,8 @@ class ResidualAttentionBlock(nn.Module):
     def __init__(self, d_model: int, n_head: int, attn_mask: torch.Tensor = None, use_flash_attention: bool = False):
         super().__init__()
 
+        print("HELLLLLLLLLLLLLLOOOOOOOOOOOO!!!!!!!!!!!!")
+
         self.attn = nn.MultiheadAttention(d_model, n_head, batch_first=False) if not use_flash_attention else FlashMHA(d_model, n_head)
         self.ln_1 = LayerNorm(d_model)
         self.mlp = .Sequential(OrderedDict([
