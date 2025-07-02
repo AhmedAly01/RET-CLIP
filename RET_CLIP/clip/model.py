@@ -230,7 +230,7 @@ class ResidualAttentionBlock(nn.Module):
 
         self.attn = nn.MultiheadAttention(d_model, n_head, batch_first=False) if not use_flash_attention else FlashMHA(d_model, n_head)
         self.ln_1 = LayerNorm(d_model)
-        self.mlp = .Sequential(OrderedDict([
+        self.mlp = nn.Sequential(OrderedDict([
             ("c_fc", nn.Linear(d_model, d_model * 4)),
             ("gelu", QuickGELU()),
             ("c_proj", nn.Linear(d_model * 4, d_model))
